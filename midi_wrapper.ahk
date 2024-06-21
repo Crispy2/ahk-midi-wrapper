@@ -8,9 +8,9 @@ midi_InternalOpenDeviceHandle := MIDI_NO_DEVICE
 midi_InternalOpenDeviceIndex := MIDI_NO_DEVICE
 midi_InternalCcDebounceIntervalMs := 0
 
-midiNoteOnCallbacks := Array()			; Expects function with args callback(channel, noteNum, velocity)
-midiNoteOffCallbacks := Array()			; Expects function with args callback(channel, noteNum, velocity)
-midiControlChangeCallbacks := Array()	; Expects function with args callback(channel, controllerId, value)
+midi_InternalNoteOnCallbacks := Array()
+midi_InternalNoteOffCallbacks := Array()
+midi_InternalControlChangeCallbacks := Array()
 
 ; Returns the number of MIDI devices
 midiGetDeviceCount() {
@@ -65,6 +65,36 @@ midiGetAllDeviceNames() {
 }
 
 /*
+    Adds a callback for note on events.
+
+    callback: function with parameters (channel, noteNum, velocity)
+*/
+midiAddNoteOnCallback(callback) {
+    midi_InternalValidateFunctionParameterCount(callback, 3, 3, 'Invalid number of parameters. Requires callback(channel, noteNum, velocity)')
+    midi_InternalNoteOnCallbacks.push(callback)
+}
+
+/*
+    Adds a callback for note off events.
+
+    callback: function with parameters (channel, noteNum, velocity)
+*/
+midiAddNoteOffCallback(callback) {
+    midi_InternalValidateFunctionParameterCount(callback, 3, 3, 'Invalid number of parameters. Requires callback(channel, noteNum, velocity)')
+    midi_InternalNoteOffCallbacks.push(callback)
+}
+
+/*
+    Adds a callback for control change events.
+
+    callback: function with parameters (channel, controllerId, value)
+*/
+midiAddControlChangeCallback(callback) {
+    midi_InternalValidateFunctionParameterCount(callback, 3, 3, 'Invalid number of parameters. Requires callback(channel, controllerId, value)')
+    midi_InternalControlChangeCallbacks.push(callback)
+}
+
+/*
     Opens a MIDI device for input.
 
     deviceIndex: the 0-based index of the device
@@ -96,7 +126,6 @@ midiOpenDeviceForInput(deviceIndex, ccDebounceIntervalMs) {
 
 	result := DllCall("winmm.dll\midiInStart", 'UInt', deviceHandle, 'UInt')
 	if (result) {
-		MsgBox('DLL midiInStart result: ' . result)
 		throw OSError('DLL midiInStart result: ' . result, result)
 	}
 
@@ -145,7 +174,7 @@ midi_InternalOnMidiMessageCallback(hMidiIn, msg, instance, midiPayload, midiTime
 			noteNum := data1
 			velocity := data2
 
-			for callback in midiNoteOnCallbacks {
+			for callback in midi_InternalNoteOnCallbacks {
 				SetTimer midi_InternalCreateNoteCallbackClosure(callback, channel, noteNum, velocity), -1
 			}
 		}
@@ -153,7 +182,7 @@ midi_InternalOnMidiMessageCallback(hMidiIn, msg, instance, midiPayload, midiTime
 			noteNum := data1
 			velocity := data2
 
-			for callback in midiNoteOffCallbacks {
+			for callback in midi_InternalNoteOffCallbacks {
 				SetTimer midi_InternalCreateNoteCallbackClosure(callback, channel, noteNum, velocity), -1
 			}
 		}
@@ -169,7 +198,7 @@ midi_InternalOnMidiMessageCallback(hMidiIn, msg, instance, midiPayload, midiTime
 				lastTrigger := lastTriggerByControllerId.get(controllerId, 0)
 
 				if (((A_TickCount - lastTrigger) > midi_InternalCcDebounceIntervalMs)) {
-					for callback in midiControlChangeCallbacks {
+					for callback in midi_InternalControlChangeCallbacks {
 						SetTimer midi_InternalCreateControllerCallbackClosure(callback, channel, controllerId, data2), -1
 					}
 				}
@@ -241,4 +270,10 @@ LRESULT CALLBACK WindowProc(
 			midiOpenDeviceForInput(midi_InternalOpenDeviceIndex, midi_InternalCcDebounceIntervalMs)
 		}
 	}
+}
+
+midi_InternalValidateFunctionParameterCount(funcObj, minCount, maxCount, errorMsg) {
+    if (funcObj.minParams!=minCount || funcObj.maxParams!=maxCount) {
+        throw ValueError(errorMsg)
+    }
 }

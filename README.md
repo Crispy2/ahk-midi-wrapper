@@ -18,23 +18,22 @@ You must also use the ```midiOpenDeviceForInput()``` method to start monitoring 
 See [examples/midi_events.ahk](examples/midi_events.ahk) for a complete example.
 
 #### Registering callbacks
-There is an array for each event type, simply add a callback method to the appropriate array.
 
 ##### Note on events
 ```autohotkey
 onNoteOnEvent(channel, noteNum, velocity) {
     MsgBox('Note on received for note ' . noteNum . ' on channel ' . channel . ' with velocity ' . velocity)
 }
-midiNoteOnCallbacks.push(onNoteOnEvent)
+midiAddNoteOnCallback(onNoteOnEvent)
 ```
-the `onNoteOnEvent` method will run every time a note on event is received.
+The `onNoteOnEvent` method will run every time a note on event is received.
 
 ##### Note off events
 ```autohotkey
 onNoteOffEvent(channel, noteNum, velocity) {
     MsgBox('Note off received for note ' . noteNum . ' on channel ' . channel . ' with velocity ' . velocity)
 }
-midiNoteOffCallbacks.push(onNoteOffEvent)
+midiAddNoteOffCallback(onNoteOffEvent)
 ```
 
 ##### Controller change events
@@ -42,7 +41,7 @@ midiNoteOffCallbacks.push(onNoteOffEvent)
 onControlChangeEvent(channel, controllerId, value) {
     MsgBox('Control change received for controller ID ' . controllerId . ' on channel ' . channel . ' with value ' . value)
 }
-midiControlChangeCallbacks.push(onControlChangeEvent)
+midiAddControlChangeCallback(onControlChangeEvent)
 ```
 
 
