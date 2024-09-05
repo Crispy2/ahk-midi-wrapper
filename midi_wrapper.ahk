@@ -119,7 +119,7 @@ midiOpenDeviceForInput(deviceIndex, ccDebounceIntervalMs) {
 	*/
 	result := DllCall("winmm.dll\midiInOpen", 'Ptr', deviceHandleBuffer, 'UInt', deviceIndex, 'UInt', CallbackCreate(midi_InternalOnMidiMessageCallback), 'UInt', 0, 'UInt', CALLBACK_FUNCTION, 'UInt')
 	if (result) {
-		throw OSError('DLL midiInOpen result: ' . result, result)
+		throw OSError('DLL midiInOpen result=' . result . ' for device index=' . deviceIndex , result)
 	}
 
 	deviceHandle := NumGet(deviceHandleBuffer, 'int')
@@ -139,13 +139,20 @@ midiCloseDeviceForInput(deviceHandle) {
 	DllCall("winmm.dll\midiInClose", 'UInt', deviceHandle, 'UInt')
 }
 
-; For internal use - called when the script exits to ensure that an open device is closed
-midi_InternalTidyUp(exitReason, exitCode) {
-	global midi_InternalOpenDeviceHandle, midi_InternalOpenDeviceIndex
-	if (midi_InternalOpenDeviceIndex !== MIDI_NO_DEVICE) {
+; For internal use - close the active device (if one is open) and reset the device index and handle trackers
+midi_InternalCloseActiveDevice() {
+    global midi_InternalOpenDeviceHandle, midi_InternalOpenDeviceIndex
+
+	if (midi_InternalOpenDeviceHandle !== MIDI_NO_DEVICE) {
 		midiCloseDeviceForInput(midi_InternalOpenDeviceHandle)
 		midi_InternalOpenDeviceIndex := MIDI_NO_DEVICE
+        midi_InternalOpenDeviceHandle := MIDI_NO_DEVICE
 	}
+}
+
+; For internal use - called when the script exits to ensure that an open device is closed
+midi_InternalTidyUp(exitReason, exitCode) {
+	midi_InternalCloseActiveDevice()
 }
 
 ; For internal use - called when a MIDI message is received
@@ -264,10 +271,10 @@ LRESULT CALLBACK WindowProc(
 	PBT_POWERSETTINGCHANGE := 32787
 
 	if (wParam == PBT_APMRESUMEAUTOMATIC) {
-		if (midi_InternalOpenDeviceIndex != MIDI_NO_DEVICE) {
-
-			midiCloseDeviceForInput(midi_InternalOpenDeviceHandle)
-			midiOpenDeviceForInput(midi_InternalOpenDeviceIndex, midi_InternalCcDebounceIntervalMs)
+		if (midi_InternalOpenDeviceHandle != MIDI_NO_DEVICE) {
+		    deviceIndex := midi_InternalOpenDeviceIndex
+		    midi_InternalCloseActiveDevice()
+			midiOpenDeviceForInput(deviceIndex, midi_InternalCcDebounceIntervalMs)
 		}
 	}
 }
