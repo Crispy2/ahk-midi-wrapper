@@ -19,9 +19,9 @@ onControlChangeEvent(channel, controllerId, value) {
 }
 
 ; Register the callbacks
-midiNoteOnCallbacks.push(onNoteOnEvent)
-midiNoteOffCallbacks.push(onNoteOffEvent)
-midiControlChangeCallbacks.push(onControlChangeEvent)
+midiAddNoteOnCallback(onNoteOnEvent)
+midiAddNoteOffCallback(onNoteOffEvent)
+midiAddControlChangeCallback(onControlChangeEvent)
 
 ; Open the MIDI device for input (i.e. start receiving the events)
 midiOpenDeviceForInput(DEVICE_INDEX_TO_USE, 600)
