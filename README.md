@@ -37,6 +37,23 @@ onNoteOffEvent(channel, noteNum, velocity) {
 midiNoteOffCallbacks.push(onNoteOffEvent)
 ```
 
+Some MIDI devices don't send "proper" note off events: instead they send a note on event with `velocity=0`.
+You can use the [examples/midi_events.ahk](examples/midi_events.ahk) script to test your device and see what happens.
+If your device does send a note on event with `velocity=0` then you can check the velocity to work out whether the event
+is actually a note on or off.
+
+```autohotkey
+onNoteOnEvent(channel, noteNum, velocity) {
+    if (velocity == 0) {
+        MsgBox('Note off received for note ' . noteNum . ' on channel ' . channel)
+    } else {
+        MsgBox('Note on received for note ' . noteNum . ' on channel ' . channel . ' with velocity ' . velocity)
+    }
+}
+midiNoteOnCallbacks.push(onNoteOnEvent)
+```
+
+
 ##### Controller change events
 ```autohotkey
 onControlChangeEvent(channel, controllerId, value) {
